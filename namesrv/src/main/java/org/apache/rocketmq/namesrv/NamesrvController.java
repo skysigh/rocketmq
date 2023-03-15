@@ -62,9 +62,16 @@ public class NamesrvController {
     private final NettyServerConfig nettyServerConfig;
     private final NettyClientConfig nettyClientConfig;
 
+    /**
+     * kvConfigManager::printAllPeriodically    每10分钟
+     * this.printWaterMark()                    每1s
+     */
     private final ScheduledExecutorService scheduledExecutorService = new ScheduledThreadPoolExecutor(1,
             new BasicThreadFactory.Builder().namingPattern("NSScheduledThread").daemon(true).build());
 
+    /**
+     * routeInfoManager::scanNotActiveBroker  每隔5s执行  NamesrvConfig#scanNotActiveBrokerInterval
+     */
     private final ScheduledExecutorService scanExecutorService = new ScheduledThreadPoolExecutor(1,
             new BasicThreadFactory.Builder().namingPattern("NSScanScheduledThread").daemon(true).build());
 
@@ -76,10 +83,26 @@ public class NamesrvController {
 
     private final BrokerHousekeepingService brokerHousekeepingService;
 
+    /**
+     * 用于默认处理器
+     * 线程名称 RemotingExecutorThread_
+     * 线程数量 NamesrvConfig#defaultThreadPoolNums 默认16
+     */
     private ExecutorService defaultExecutor;
+    /**
+     * 用于ClientRequestProcessor处理器
+     * 线程名称 ClientRequestExecutorThread_
+     * 线程数量 NamesrvConfig#clientRequestThreadPoolNums 默认8
+     */
     private ExecutorService clientRequestExecutor;
 
+    /**
+     * 容量默认10000 NamesrvConfig#defaultThreadPoolQueueCapacity配置
+     */
     private BlockingQueue<Runnable> defaultThreadPoolQueue;
+    /**
+     * 容量默认50000 NamesrvConfig#clientRequestThreadPoolQueueCapacity
+     */
     private BlockingQueue<Runnable> clientRequestThreadPoolQueue;
 
     private final Configuration configuration;

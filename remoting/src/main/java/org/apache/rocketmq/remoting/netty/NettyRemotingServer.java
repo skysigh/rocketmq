@@ -36,6 +36,8 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -77,16 +79,43 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
     private static final Logger TRAFFIC_LOGGER = LoggerFactory.getLogger(LoggerName.ROCKETMQ_TRAFFIC_NAME);
 
     private final ServerBootstrap serverBootstrap;
+    /**
+     * 线程名称NettyServerNIOSelector_ 默认3
+     */
     private final EventLoopGroup eventLoopGroupSelector;
+    /**
+     * 线程名称 NettyNIOBoss_   默认1
+     */
     private final EventLoopGroup eventLoopGroupBoss;
     private final NettyServerConfig nettyServerConfig;
 
+    /**
+     * 用于NettyRequestProcessor
+     * 线程名称**NettyServerPublicExecutor_**
+     * 线程数 通过NettyServerConfig.serverCallbackExecutorThreads 配置 默认 4
+     */
     private final ExecutorService publicExecutor;
+    /**
+     * 执行任务 this.printRemotingCodeDistribution()  间隔 1s 执行
+     * 线程名称 NettyServerScheduler_   固定一个线程
+     */
     private final ScheduledExecutorService scheduledExecutorService;
+    /**
+     * NettyEvent事件的实际处理者
+     */
     private final ChannelEventListener channelEventListener;
 
+    /**
+     * 执行任务 this.scanResponseTable();    每1s执行一次
+     * 线程名称 ServerHouseKeepingService  固定一个线程
+     */
     private final HashedWheelTimer timer = new HashedWheelTimer(r -> new Thread(r, "ServerHouseKeepingService"));
 
+    /**
+     * 用于处理handler
+     * 线程名称 NettyServerCodecThread_
+     * 线程数量 默认8 NettyServerConfig.serverWorkerThreads
+     */
     private DefaultEventExecutorGroup defaultEventExecutorGroup;
 
     /**
@@ -192,6 +221,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
             .childOption(ChannelOption.TCP_NODELAY, true)
             .localAddress(new InetSocketAddress(this.nettyServerConfig.getBindAddress(),
                 this.nettyServerConfig.getListenPort()))
+                .handler(new NettyRemotingServerLoggingHandler(LogLevel.ERROR))
             .childHandler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 public void initChannel(SocketChannel ch) {
@@ -250,6 +280,7 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
+                .addLast(new NettyRemotingServerClientLoggingHandler(LogLevel.ERROR))
             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
             .addLast(defaultEventExecutorGroup,
                 encoder,

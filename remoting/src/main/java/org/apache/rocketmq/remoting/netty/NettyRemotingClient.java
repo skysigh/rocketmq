@@ -34,6 +34,8 @@ import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.logging.LogLevel;
+import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
@@ -231,6 +233,7 @@ public class NettyRemotingClient extends NettyRemotingAbstract implements Remoti
                             LOGGER.warn("Connections are insecure as SSLContext is null!");
                         }
                     }
+                    ch.pipeline().addFirst(new NettyRemotingClientLoggingHandler(LogLevel.ERROR));
                     ch.pipeline().addLast(
                         nettyClientConfig.isDisableNettyWorkerGroup() ? null : defaultEventExecutorGroup,
                         new NettyEncoder(),
