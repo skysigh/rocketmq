@@ -280,7 +280,8 @@ public class NettyRemotingServer extends NettyRemotingAbstract implements Remoti
      */
     protected ChannelPipeline configChannel(SocketChannel ch) {
         return ch.pipeline()
-                .addLast(new NettyRemotingServerClientLoggingHandler(LogLevel.ERROR))
+                .addLast(defaultEventExecutorGroup,
+                        new NettyRemotingServerClientLoggingHandler(LogLevel.ERROR))
             .addLast(defaultEventExecutorGroup, HANDSHAKE_HANDLER_NAME, handshakeHandler)
             .addLast(defaultEventExecutorGroup,
                 encoder,
